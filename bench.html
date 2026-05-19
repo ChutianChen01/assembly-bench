@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AssemblyBench — Build a plasmid</title>
+<meta name="description" content="Interactive workspace for assembling a plasmid from genetic parts." />
+<link rel="stylesheet" href="styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<header class="topnav" id="topnav">
+  <div class="nav-inner">
+    <a href="index.html" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="28" height="28">
+          <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/>
+          <circle cx="16" cy="5" r="2.6" fill="currentColor"/>
+          <circle cx="27" cy="16" r="2.6" fill="currentColor"/>
+          <circle cx="16" cy="27" r="2.6" fill="currentColor"/>
+          <circle cx="5" cy="16" r="2.6" fill="currentColor"/>
+        </svg>
+      </span>
+      <span class="brand-text">Assembly<strong>Bench</strong></span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="index.html">Introduction</a>
+      <a href="bench.html" class="is-active">AssemblyBench</a>
+      <a href="find.html">Find a Part</a>
+      <a href="grab.html">Grab the Sequence</a>
+    </nav>
+    <button id="navToggle" class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+
+<section class="section section-bench">
+  <div class="container">
+    <p class="eyebrow">The Bench</p>
+    <h2>Build a plasmid, part by part</h2>
+    <p class="muted">Pick parts from the library, drop them on the assembly track, and watch your plasmid come together. Click any part on the track to edit its sequence or remove it. New to this? Read the <a href="index.html">Introduction</a> first.</p>
+
+    <div class="bench-grid">
+
+      <aside class="bench-library" aria-label="Part library">
+        <div class="library-head">
+          <h3>Part library</h3>
+          <p class="muted small">Click <strong>＋ Add</strong> to place a part on the track.</p>
+        </div>
+        <div class="library-filter">
+          <button class="chip is-active" data-filter="all">All</button>
+          <button class="chip" data-filter="promoter">Promoter</button>
+          <button class="chip" data-filter="rbs">RBS</button>
+          <button class="chip" data-filter="cds">CDS</button>
+          <button class="chip" data-filter="terminator">Terminator</button>
+          <button class="chip" data-filter="origin">Origin</button>
+          <button class="chip" data-filter="resistance">Marker</button>
+        </div>
+        <ul class="library-list" id="libraryList"></ul>
+
+        <button class="btn btn-ghost btn-block" id="addCustomBtn">+ Add a custom part</button>
+      </aside>
+
+      <section class="bench-workspace" aria-label="Assembly workspace">
+        <div class="workspace-head">
+          <div>
+            <input id="plasmidName" class="plasmid-name" value="pMyConstruct" aria-label="Plasmid name" />
+            <p class="muted small" id="plasmidStats">0 parts · 0 bp</p>
+          </div>
+          <div class="workspace-actions">
+            <button class="btn btn-ghost" id="loadExampleBtn" title="Load a worked example">Load example</button>
+            <button class="btn btn-ghost" id="clearBtn" title="Clear the track">Clear</button>
+            <button class="btn btn-primary" id="exportBtn" title="Export as FASTA">Export FASTA</button>
+          </div>
+        </div>
+
+        <div class="workspace-views">
+          <button class="view-tab is-active" data-view="linear">Linear view</button>
+          <button class="view-tab" data-view="circular">Circular view</button>
+        </div>
+
+        <div class="track-wrap" id="trackWrap">
+          <div class="track" id="track" data-empty="true">
+            <p class="track-empty">Your assembly is empty. Add parts from the library on the left to begin.</p>
+          </div>
+        </div>
+
+        <div class="circular-wrap" id="circularWrap" hidden>
+          <svg id="circularSvg" viewBox="-180 -180 360 360" role="img" aria-label="Circular plasmid view"></svg>
+        </div>
+
+        <div class="validator" id="validator" aria-live="polite"></div>
+      </section>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<dialog id="partDialog" class="dialog">
+  <form method="dialog" class="dialog-inner">
+    <header class="dialog-head">
+      <h3 id="dialogTitle">Part</h3>
+      <button class="icon-btn" value="cancel" aria-label="Close" type="button" id="dialogClose">✕</button>
+    </header>
+    <div class="dialog-body">
+      <label class="field">
+        <span>Display name</span>
+        <input id="dialogName" type="text" />
+      </label>
+      <label class="field">
+        <span>Part type</span>
+        <select id="dialogType">
+          <option value="promoter">Promoter</option>
+          <option value="rbs">RBS</option>
+          <option value="cds">CDS (coding sequence)</option>
+          <option value="terminator">Terminator</option>
+          <option value="origin">Origin of replication</option>
+          <option value="resistance">Resistance marker</option>
+          <option value="other">Other / spacer</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>DNA sequence (A/T/G/C, others ignored)</span>
+        <textarea id="dialogSeq" rows="8" spellcheck="false" placeholder="Paste a FASTA or raw sequence. Headers (lines starting with &gt;) are stripped automatically."></textarea>
+        <span class="field-hint" id="dialogSeqHint">0 bp</span>
+      </label>
+    </div>
+    <footer class="dialog-foot">
+      <button class="btn btn-danger" type="button" id="dialogDelete">Remove from track</button>
+      <span class="spacer"></span>
+      <button class="btn btn-ghost" type="button" id="dialogCancel">Cancel</button>
+      <button class="btn btn-primary" type="button" id="dialogSave">Save</button>
+    </footer>
+  </form>
+</dialog>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p>
+      AssemblyBench · An educational synthetic biology playground.
+      Workflow conceptually inspired by Lee et&nbsp;al. (2015), <em>ACS Synthetic Biology</em>,
+      <a href="https://pubs.acs.org/doi/10.1021/sb500366v" target="_blank" rel="noopener">10.1021/sb500366v</a>.
+    </p>
+    <p class="muted small">Not affiliated with any institution. For learning, not for clinical use.</p>
+  </div>
+</footer>
+
+<div id="tooltip" class="tooltip" role="tooltip"></div>
+
+<script src="nav.js"></script>
+<script src="parts.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

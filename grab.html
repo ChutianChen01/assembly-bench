@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AssemblyBench — How to grab the sequence</title>
+<meta name="description" content="A practical tutorial for pulling DNA sequences out of public databases and pasting them cleanly into AssemblyBench." />
+<link rel="stylesheet" href="styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<header class="topnav" id="topnav">
+  <div class="nav-inner">
+    <a href="index.html" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="28" height="28">
+          <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/>
+          <circle cx="16" cy="5" r="2.6" fill="currentColor"/>
+          <circle cx="27" cy="16" r="2.6" fill="currentColor"/>
+          <circle cx="16" cy="27" r="2.6" fill="currentColor"/>
+          <circle cx="5" cy="16" r="2.6" fill="currentColor"/>
+        </svg>
+      </span>
+      <span class="brand-text">Assembly<strong>Bench</strong></span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="index.html">Introduction</a>
+      <a href="bench.html">AssemblyBench</a>
+      <a href="find.html">Find a Part</a>
+      <a href="grab.html" class="is-active">Grab the Sequence</a>
+    </nav>
+    <button id="navToggle" class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+
+<section class="section">
+  <div class="container">
+    <p class="eyebrow">Step 2 — Sequence</p>
+    <h2>How to grab the sequence</h2>
+    <p class="muted">Once you know what you want (see <a href="find.html">Find a Part</a>), here's how to get the raw DNA letters into AssemblyBench without making the classic beginner mistakes.</p>
+
+    <ol class="steps">
+      <li class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Search for your gene or protein</h3>
+          <p>On NCBI, use the <strong>Gene</strong> or <strong>Nucleotide</strong> database. On UniProt, use the search bar with the protein name plus the organism (e.g., <code>GFP Aequorea victoria</code>).</p>
+          <p class="muted small">Pro tip: include the organism. "Insulin" in human is a different sequence from "insulin" in zebrafish.</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Open the right record</h3>
+          <p>Pick the entry marked <em>reviewed</em> (on UniProt: a gold star) or the most-cited RefSeq (on NCBI: accession starts with <code>NM_</code>, <code>NP_</code>, or <code>NC_</code>).</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Switch the view to FASTA</h3>
+          <p>On NCBI, click <em>"Send to" → File → Format: FASTA</em>, or just click the <em>FASTA</em> link near the top of the record. FASTA is the simplest sequence format you'll meet.</p>
+
+          <div class="code-block">
+<pre><code>&gt;NP_002046.1 glyceraldehyde-3-phosphate dehydrogenase
+MGKVKVGVNGFGRIGRLVTRAAFNSGKVDIVAINDPFIDLNYMVYMFQYDSTHGKFHGTVK
+AENGKLVINGNPITIFQERDPSKIKWGDAGAEYVVESTGVFTTMEKAGAHLQGGAKRVII
+SAPSADAPMFVMGVNHEKYDNSLKIISNASCTTNCLAPLAKVIHDNFGIVEGLMTTVHAI
+...</code></pre>
+          </div>
+
+          <p>The first line (starting with <code>&gt;</code>) is the <strong>header</strong>. The lines after it are the sequence. AssemblyBench will strip the header for you automatically when you paste.</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>Decide: DNA or protein?</h3>
+          <p>AssemblyBench works with <strong>DNA</strong> (A, T, G, C). If you grabbed a protein sequence (which uses 20 letters like M, K, V, …), go back and find the <em>coding DNA</em> link on the same record. On UniProt, scroll to <em>"Sequences"</em> → <em>"Cross-references"</em> → click the EMBL/GenBank ID.</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>Copy the sequence — not the annotations</h3>
+          <p>This is the #1 beginner mistake. Many records show the sequence with line numbers, capitalized features, and footnotes. <strong>Only copy the letters.</strong></p>
+          <ul class="mistake-list">
+            <li><span class="bad">✕</span> <code>1 atggtgagca agggcgagga gctgttcacc</code> — has a number</li>
+            <li><span class="bad">✕</span> <code>&gt;header line\nATG...</code> if you keep the &gt; in a tool that doesn't strip it</li>
+            <li><span class="good">✓</span> <code>ATGGTGAGCAAGGGCGAGGAGCTGTTCACC...</code> — clean, just letters</li>
+          </ul>
+          <p class="muted small">AssemblyBench is forgiving: it strips numbers, spaces, newlines, FASTA headers, and non-ATGC characters automatically. But other tools won't be.</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <h3>Paste into AssemblyBench</h3>
+          <p>Open the <a href="bench.html">Bench</a>, click <em>+ Add a custom part</em> (or pick an existing part on your track), and paste your sequence into the <em>DNA sequence</em> box. Give it a clear name like <code>P_GAPDH</code> or <code>CDS_GFP</code>.</p>
+          <a href="bench.html" class="btn btn-primary">Try it now →</a>
+        </div>
+      </li>
+    </ol>
+
+    <div class="callout callout-soft">
+      <strong>One last thing.</strong> Real cloning has subtleties this site doesn't cover —
+      codon optimization, restriction sites, reading frames, internal stop codons. AssemblyBench
+      is a teaching tool: it gets you fluent in the <em>vocabulary and logic</em> of plasmid
+      design so the real-world details click faster when you meet them.
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p>
+      AssemblyBench · An educational synthetic biology playground.
+      Workflow conceptually inspired by Lee et&nbsp;al. (2015), <em>ACS Synthetic Biology</em>,
+      <a href="https://pubs.acs.org/doi/10.1021/sb500366v" target="_blank" rel="noopener">10.1021/sb500366v</a>.
+    </p>
+    <p class="muted small">Not affiliated with any institution. For learning, not for clinical use.</p>
+  </div>
+</footer>
+
+<script src="nav.js"></script>
+</body>
+</html>

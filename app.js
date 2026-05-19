@@ -36,8 +36,7 @@
   }
 
   function formatBp(n) {
-    if (n < 1000) return `${n} bp`;
-    return `${(n / 1000).toFixed(2)} kb`;
+    return `${n.toLocaleString()} bp`;
   }
 
   // ------- Library rendering -------
@@ -446,39 +445,6 @@
     renderLibrary();
   }
 
-  // ------- Nav -------
-  function setupNav() {
-    // Mobile toggle
-    const toggle = $('#navToggle');
-    const links = $('.nav-links');
-    toggle.addEventListener('click', () => {
-      const open = links.classList.toggle('is-open');
-      toggle.setAttribute('aria-expanded', String(open));
-    });
-    $$('.nav-links a, a[data-nav]').forEach((a) => {
-      a.addEventListener('click', () => links.classList.remove('is-open'));
-    });
-
-    // Section spy
-    const sections = ['intro', 'bench', 'find', 'grab']
-      .map((id) => document.getElementById(id))
-      .filter(Boolean);
-    const setActive = (id) => {
-      $$('.nav-links a').forEach((a) => a.classList.toggle('is-active', a.getAttribute('href') === `#${id}`));
-    };
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)
-          .slice(0, 1)
-          .forEach((e) => setActive(e.target.id));
-      },
-      { rootMargin: '-40% 0px -50% 0px', threshold: [0, 0.25, 0.5, 1] }
-    );
-    sections.forEach((s) => obs.observe(s));
-  }
-
   // ------- Tooltip system -------
   const tip = {
     el: null,
@@ -553,9 +519,6 @@
 
     // Track DnD
     setupTrackDnD();
-
-    // Nav
-    setupNav();
   }
 
   // ------- Boot -------

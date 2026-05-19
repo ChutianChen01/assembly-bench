@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AssemblyBench — How to find the part you need</title>
+<meta name="description" content="A beginner's guide to finding biological parts and sequences across PubMed, NCBI, UniProt, Addgene, iGEM, and more." />
+<link rel="stylesheet" href="styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<header class="topnav" id="topnav">
+  <div class="nav-inner">
+    <a href="index.html" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="28" height="28">
+          <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/>
+          <circle cx="16" cy="5" r="2.6" fill="currentColor"/>
+          <circle cx="27" cy="16" r="2.6" fill="currentColor"/>
+          <circle cx="16" cy="27" r="2.6" fill="currentColor"/>
+          <circle cx="5" cy="16" r="2.6" fill="currentColor"/>
+        </svg>
+      </span>
+      <span class="brand-text">Assembly<strong>Bench</strong></span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="index.html">Introduction</a>
+      <a href="bench.html">AssemblyBench</a>
+      <a href="find.html" class="is-active">Find a Part</a>
+      <a href="grab.html">Grab the Sequence</a>
+    </nav>
+    <button id="navToggle" class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+
+<section class="section section-soft">
+  <div class="container">
+    <p class="eyebrow">Step 1 — Research</p>
+    <h2>How to find the part you need</h2>
+    <p class="muted">
+      Before you assemble, you need DNA sequences. Different databases are good for
+      different things. Here's a beginner-friendly map of where to look. Once you
+      have a sequence, head to <a href="grab.html">Grab the Sequence</a> to get it
+      cleanly into AssemblyBench.
+    </p>
+
+    <div class="resource-grid">
+
+      <a class="resource-card" href="https://pubmed.ncbi.nlm.nih.gov" target="_blank" rel="noopener">
+        <div class="resource-mark" style="--c:#1d4ed8">Pub</div>
+        <h3>PubMed</h3>
+        <p class="resource-tag">Find papers describing the part</p>
+        <p>Start here when you have a vague idea ("a fluorescent protein that's redder than mCherry"). Read the papers — they cite the original sequence sources.</p>
+        <span class="resource-when">Use when: you don't know what gene or organism yet.</span>
+      </a>
+
+      <a class="resource-card" href="https://scholar.google.com" target="_blank" rel="noopener">
+        <div class="resource-mark" style="--c:#0f766e">G·S</div>
+        <h3>Google Scholar</h3>
+        <p class="resource-tag">Broader literature search</p>
+        <p>Useful for grey literature, preprints, theses, and following citation trails.
+          Pairs well with PubMed for early-stage discovery.</p>
+        <span class="resource-when">Use when: PubMed feels too narrow.</span>
+      </a>
+
+      <a class="resource-card" href="https://www.ncbi.nlm.nih.gov/" target="_blank" rel="noopener">
+        <div class="resource-mark" style="--c:#0ea5e9">NCBI</div>
+        <h3>NCBI (GenBank / Gene / Nucleotide)</h3>
+        <p class="resource-tag">The canonical DNA sequence source</p>
+        <p>Search by gene name, accession number, or organism. Most papers reference an NCBI accession — that's where the official DNA sequence lives.</p>
+        <span class="resource-when">Use when: you know the gene name and want the DNA.</span>
+      </a>
+
+      <a class="resource-card" href="https://www.uniprot.org" target="_blank" rel="noopener">
+        <div class="resource-mark" style="--c:#7c3aed">Uni</div>
+        <h3>UniProt</h3>
+        <p class="resource-tag">The protein-centric database</p>
+        <p>Best when you care about the <em>protein</em> (function, domains, structure links). Each UniProt entry links back to its coding DNA on NCBI.</p>
+        <span class="resource-when">Use when: you're picking a protein to express.</span>
+      </a>
+
+      <a class="resource-card" href="https://www.rcsb.org" target="_blank" rel="noopener">
+        <div class="resource-mark" style="--c:#ea580c">PDB</div>
+        <h3>Protein Data Bank</h3>
+        <p class="resource-tag">3D protein structures</p>
+        <p>If you need to know <em>what your protein looks like</em> (active sites, binding pockets), the PDB is the place. Use it to decide which variant to clone.</p>
+        <span class="resource-when">Use when: you're engineering a protein, not just expressing it.</span>
+      </a>
+
+      <a class="resource-card" href="https://www.addgene.org" target="_blank" rel="noopener">
+        <div class="resource-mark" style="--c:#dc2626">Add</div>
+        <h3>Addgene</h3>
+        <p class="resource-tag">Real plasmids you can order</p>
+        <p>A non-profit plasmid repository. Search for a published plasmid, see its full sequence and map, and request it for ~$80. Excellent for backbones.</p>
+        <span class="resource-when">Use when: you want a known working plasmid as a starting point.</span>
+      </a>
+
+      <a class="resource-card" href="https://parts.igem.org" target="_blank" rel="noopener">
+        <div class="resource-mark" style="--c:#16a34a">iGEM</div>
+        <h3>iGEM Parts Registry</h3>
+        <p class="resource-tag">Community standard parts</p>
+        <p>Thousands of "BioBrick" parts (promoters, RBSs, reporters) submitted by student teams. Quality varies — check the experience pages.</p>
+        <span class="resource-when">Use when: you want common parts with prior characterization data.</span>
+      </a>
+
+      <a class="resource-card" href="https://benchling.com/explore" target="_blank" rel="noopener">
+        <div class="resource-mark" style="--c:#0891b2">Bench</div>
+        <h3>Benchling Public</h3>
+        <p class="resource-tag">Shared cloning notebooks</p>
+        <p>Many labs publish their plasmid maps openly on Benchling. Searching here often turns up annotated sequences ready to copy.</p>
+        <span class="resource-when">Use when: you're hunting for a well-annotated map.</span>
+      </a>
+
+    </div>
+
+    <div class="callout">
+      <strong>Beginner tip.</strong> If you're brand new, this is the typical path:
+      <em>idea → PubMed paper → NCBI accession → FASTA sequence → paste into AssemblyBench.</em>
+      Don't try to memorize all eight resources at once.
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p>
+      AssemblyBench · An educational synthetic biology playground.
+      Workflow conceptually inspired by Lee et&nbsp;al. (2015), <em>ACS Synthetic Biology</em>,
+      <a href="https://pubs.acs.org/doi/10.1021/sb500366v" target="_blank" rel="noopener">10.1021/sb500366v</a>.
+    </p>
+    <p class="muted small">Not affiliated with any institution. For learning, not for clinical use.</p>
+  </div>
+</footer>
+
+<script src="nav.js"></script>
+</body>
+</html>

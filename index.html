@@ -15,7 +15,7 @@
 <!-- ============ TOP NAV ============ -->
 <header class="topnav" id="topnav">
   <div class="nav-inner">
-    <a href="#intro" class="brand" data-nav="intro">
+    <a href="index.html" class="brand">
       <span class="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 32 32" width="28" height="28">
           <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/>
@@ -28,10 +28,10 @@
       <span class="brand-text">Assembly<strong>Bench</strong></span>
     </a>
     <nav class="nav-links" aria-label="Primary">
-      <a href="#intro" data-nav="intro">Introduction</a>
-      <a href="#bench" data-nav="bench">AssemblyBench</a>
-      <a href="#find" data-nav="find">Find a Part</a>
-      <a href="#grab" data-nav="grab">Grab the Sequence</a>
+      <a href="index.html" class="is-active">Introduction</a>
+      <a href="bench.html">AssemblyBench</a>
+      <a href="find.html">Find a Part</a>
+      <a href="grab.html">Grab the Sequence</a>
     </nav>
     <button id="navToggle" class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
       <span></span><span></span><span></span>
@@ -41,8 +41,7 @@
 
 <main>
 
-<!-- ============ 1. INTRODUCTION ============ -->
-<section id="intro" class="section section-intro">
+<section class="section section-intro">
   <div class="container">
     <p class="eyebrow">Welcome</p>
     <h1>Build your first plasmid — no biology degree required.</h1>
@@ -52,7 +51,7 @@
       assemble one yourself using the same logic real labs use.
     </p>
     <div class="hero-cta">
-      <a href="#bench" class="btn btn-primary" data-nav="bench">Open the Bench →</a>
+      <a href="bench.html" class="btn btn-primary">Open the Bench →</a>
       <a href="#intro-what" class="btn btn-ghost">First, what is a plasmid?</a>
     </div>
 
@@ -125,16 +124,13 @@
           </radialGradient>
         </defs>
         <circle cx="160" cy="160" r="150" fill="url(#bg)"/>
-        <!-- backbone -->
         <circle cx="160" cy="160" r="100" fill="none" stroke="#1f2937" stroke-width="3"/>
-        <!-- arc parts -->
         <path d="M160,60 A100,100 0 0,1 246.6,110" stroke="#3b82f6" stroke-width="18" fill="none"/>
         <path d="M246.6,110 A100,100 0 0,1 246.6,210" stroke="#10b981" stroke-width="18" fill="none"/>
         <path d="M246.6,210 A100,100 0 0,1 160,260" stroke="#f59e0b" stroke-width="18" fill="none"/>
         <path d="M160,260 A100,100 0 0,1 73.4,210" stroke="#ef4444" stroke-width="18" fill="none"/>
         <path d="M73.4,210 A100,100 0 0,1 73.4,110" stroke="#8b5cf6" stroke-width="18" fill="none"/>
         <path d="M73.4,110 A100,100 0 0,1 160,60" stroke="#06b6d4" stroke-width="18" fill="none"/>
-        <!-- labels -->
         <g font-family="Inter, sans-serif" font-size="11" fill="#111827">
           <text x="205" y="78"  text-anchor="middle">Promoter</text>
           <text x="284" y="160" text-anchor="middle">RBS</text>
@@ -144,7 +140,7 @@
           <text x="115" y="78"  text-anchor="middle">Resistance</text>
         </g>
         <text x="160" y="158" text-anchor="middle" font-family="Inter" font-weight="700" font-size="18" fill="#111827">pAssembly</text>
-        <text x="160" y="178" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#6b7280">~5.2 kb</text>
+        <text x="160" y="178" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#6b7280">~5,200 bp</text>
       </svg>
     </aside>
   </div>
@@ -192,282 +188,9 @@
         <p>An antibiotic-resistance gene (e.g., AmpR, KanR) that lets only cells with your plasmid survive on selective plates.</p>
       </article>
     </div>
-  </div>
-</section>
 
-<!-- ============ 2. ASSEMBLY BENCH ============ -->
-<section id="bench" class="section section-bench">
-  <div class="container">
-    <p class="eyebrow">The Bench</p>
-    <h2>Build a plasmid, part by part</h2>
-    <p class="muted">Pick parts from the library, drop them on the assembly track, and watch your plasmid come together. Click any part on the track to edit its sequence or remove it.</p>
-
-    <div class="bench-grid">
-
-      <!-- Library -->
-      <aside class="bench-library" aria-label="Part library">
-        <div class="library-head">
-          <h3>Part library</h3>
-          <p class="muted small">Click <strong>＋ Add</strong> to place a part on the track.</p>
-        </div>
-        <div class="library-filter">
-          <button class="chip is-active" data-filter="all">All</button>
-          <button class="chip" data-filter="promoter">Promoter</button>
-          <button class="chip" data-filter="rbs">RBS</button>
-          <button class="chip" data-filter="cds">CDS</button>
-          <button class="chip" data-filter="terminator">Terminator</button>
-          <button class="chip" data-filter="origin">Origin</button>
-          <button class="chip" data-filter="resistance">Marker</button>
-        </div>
-        <ul class="library-list" id="libraryList"><!-- filled by JS --></ul>
-
-        <button class="btn btn-ghost btn-block" id="addCustomBtn">+ Add a custom part</button>
-      </aside>
-
-      <!-- Workspace -->
-      <section class="bench-workspace" aria-label="Assembly workspace">
-        <div class="workspace-head">
-          <div>
-            <input id="plasmidName" class="plasmid-name" value="pMyConstruct" aria-label="Plasmid name" />
-            <p class="muted small" id="plasmidStats">0 parts · 0 bp</p>
-          </div>
-          <div class="workspace-actions">
-            <button class="btn btn-ghost" id="loadExampleBtn" title="Load a worked example">Load example</button>
-            <button class="btn btn-ghost" id="clearBtn" title="Clear the track">Clear</button>
-            <button class="btn btn-primary" id="exportBtn" title="Export as FASTA">Export FASTA</button>
-          </div>
-        </div>
-
-        <div class="workspace-views">
-          <button class="view-tab is-active" data-view="linear">Linear view</button>
-          <button class="view-tab" data-view="circular">Circular view</button>
-        </div>
-
-        <!-- Linear track -->
-        <div class="track-wrap" id="trackWrap">
-          <div class="track" id="track" data-empty="true">
-            <p class="track-empty">Your assembly is empty. Add parts from the library on the left to begin.</p>
-          </div>
-        </div>
-
-        <!-- Circular view -->
-        <div class="circular-wrap" id="circularWrap" hidden>
-          <svg id="circularSvg" viewBox="-180 -180 360 360" role="img" aria-label="Circular plasmid view"></svg>
-        </div>
-
-        <!-- Validation -->
-        <div class="validator" id="validator" aria-live="polite"></div>
-      </section>
-    </div>
-  </div>
-</section>
-
-<!-- Part detail dialog -->
-<dialog id="partDialog" class="dialog">
-  <form method="dialog" class="dialog-inner">
-    <header class="dialog-head">
-      <h3 id="dialogTitle">Part</h3>
-      <button class="icon-btn" value="cancel" aria-label="Close" type="button" id="dialogClose">✕</button>
-    </header>
-    <div class="dialog-body">
-      <label class="field">
-        <span>Display name</span>
-        <input id="dialogName" type="text" />
-      </label>
-      <label class="field">
-        <span>Part type</span>
-        <select id="dialogType">
-          <option value="promoter">Promoter</option>
-          <option value="rbs">RBS</option>
-          <option value="cds">CDS (coding sequence)</option>
-          <option value="terminator">Terminator</option>
-          <option value="origin">Origin of replication</option>
-          <option value="resistance">Resistance marker</option>
-          <option value="other">Other / spacer</option>
-        </select>
-      </label>
-      <label class="field">
-        <span>DNA sequence (A/T/G/C, others ignored)</span>
-        <textarea id="dialogSeq" rows="8" spellcheck="false" placeholder="Paste a FASTA or raw sequence. Headers (lines starting with &gt;) are stripped automatically."></textarea>
-        <span class="field-hint" id="dialogSeqHint">0 bp</span>
-      </label>
-    </div>
-    <footer class="dialog-foot">
-      <button class="btn btn-danger" type="button" id="dialogDelete">Remove from track</button>
-      <span class="spacer"></span>
-      <button class="btn btn-ghost" type="button" id="dialogCancel">Cancel</button>
-      <button class="btn btn-primary" type="button" id="dialogSave">Save</button>
-    </footer>
-  </form>
-</dialog>
-
-<!-- ============ 3. FIND A PART ============ -->
-<section id="find" class="section section-soft">
-  <div class="container">
-    <p class="eyebrow">Step 1 — Research</p>
-    <h2>How to find the part you need</h2>
-    <p class="muted">
-      Before you assemble, you need DNA sequences. Different databases are good for
-      different things. Here's a beginner-friendly map of where to look.
-    </p>
-
-    <div class="resource-grid">
-
-      <a class="resource-card" href="https://pubmed.ncbi.nlm.nih.gov" target="_blank" rel="noopener">
-        <div class="resource-mark" style="--c:#1d4ed8">Pub</div>
-        <h3>PubMed</h3>
-        <p class="resource-tag">Find papers describing the part</p>
-        <p>Start here when you have a vague idea ("a fluorescent protein that's redder than mCherry"). Read the papers — they cite the original sequence sources.</p>
-        <span class="resource-when">Use when: you don't know what gene or organism yet.</span>
-      </a>
-
-      <a class="resource-card" href="https://scholar.google.com" target="_blank" rel="noopener">
-        <div class="resource-mark" style="--c:#0f766e">G·S</div>
-        <h3>Google Scholar</h3>
-        <p class="resource-tag">Broader literature search</p>
-        <p>Useful for grey literature, preprints, theses, and following citation trails.
-          Pairs well with PubMed for early-stage discovery.</p>
-        <span class="resource-when">Use when: PubMed feels too narrow.</span>
-      </a>
-
-      <a class="resource-card" href="https://www.ncbi.nlm.nih.gov/" target="_blank" rel="noopener">
-        <div class="resource-mark" style="--c:#0ea5e9">NCBI</div>
-        <h3>NCBI (GenBank / Gene / Nucleotide)</h3>
-        <p class="resource-tag">The canonical DNA sequence source</p>
-        <p>Search by gene name, accession number, or organism. Most papers reference an NCBI accession — that's where the official DNA sequence lives.</p>
-        <span class="resource-when">Use when: you know the gene name and want the DNA.</span>
-      </a>
-
-      <a class="resource-card" href="https://www.uniprot.org" target="_blank" rel="noopener">
-        <div class="resource-mark" style="--c:#7c3aed">Uni</div>
-        <h3>UniProt</h3>
-        <p class="resource-tag">The protein-centric database</p>
-        <p>Best when you care about the <em>protein</em> (function, domains, structure links). Each UniProt entry links back to its coding DNA on NCBI.</p>
-        <span class="resource-when">Use when: you're picking a protein to express.</span>
-      </a>
-
-      <a class="resource-card" href="https://www.rcsb.org" target="_blank" rel="noopener">
-        <div class="resource-mark" style="--c:#ea580c">PDB</div>
-        <h3>Protein Data Bank</h3>
-        <p class="resource-tag">3D protein structures</p>
-        <p>If you need to know <em>what your protein looks like</em> (active sites, binding pockets), the PDB is the place. Use it to decide which variant to clone.</p>
-        <span class="resource-when">Use when: you're engineering a protein, not just expressing it.</span>
-      </a>
-
-      <a class="resource-card" href="https://www.addgene.org" target="_blank" rel="noopener">
-        <div class="resource-mark" style="--c:#dc2626">Add</div>
-        <h3>Addgene</h3>
-        <p class="resource-tag">Real plasmids you can order</p>
-        <p>A non-profit plasmid repository. Search for a published plasmid, see its full sequence and map, and request it for ~$80. Excellent for backbones.</p>
-        <span class="resource-when">Use when: you want a known working plasmid as a starting point.</span>
-      </a>
-
-      <a class="resource-card" href="https://parts.igem.org" target="_blank" rel="noopener">
-        <div class="resource-mark" style="--c:#16a34a">iGEM</div>
-        <h3>iGEM Parts Registry</h3>
-        <p class="resource-tag">Community standard parts</p>
-        <p>Thousands of "BioBrick" parts (promoters, RBSs, reporters) submitted by student teams. Quality varies — check the experience pages.</p>
-        <span class="resource-when">Use when: you want common parts with prior characterization data.</span>
-      </a>
-
-      <a class="resource-card" href="https://benchling.com/explore" target="_blank" rel="noopener">
-        <div class="resource-mark" style="--c:#0891b2">Bench</div>
-        <h3>Benchling Public</h3>
-        <p class="resource-tag">Shared cloning notebooks</p>
-        <p>Many labs publish their plasmid maps openly on Benchling. Searching here often turns up annotated sequences ready to copy.</p>
-        <span class="resource-when">Use when: you're hunting for a well-annotated map.</span>
-      </a>
-
-    </div>
-
-    <div class="callout">
-      <strong>Beginner tip.</strong> If you're brand new, this is the typical path:
-      <em>idea → PubMed paper → NCBI accession → FASTA sequence → paste into AssemblyBench.</em>
-      Don't try to memorize all eight resources at once.
-    </div>
-  </div>
-</section>
-
-<!-- ============ 4. GRAB THE SEQUENCE ============ -->
-<section id="grab" class="section">
-  <div class="container">
-    <p class="eyebrow">Step 2 — Sequence</p>
-    <h2>How to grab the sequence</h2>
-    <p class="muted">Once you know what you want, here's how to get the raw DNA letters into AssemblyBench without making the classic beginner mistakes.</p>
-
-    <ol class="steps">
-      <li class="step">
-        <div class="step-num">1</div>
-        <div class="step-body">
-          <h3>Search for your gene or protein</h3>
-          <p>On NCBI, use the <strong>Gene</strong> or <strong>Nucleotide</strong> database. On UniProt, use the search bar with the protein name plus the organism (e.g., <code>GFP Aequorea victoria</code>).</p>
-          <p class="muted small">Pro tip: include the organism. "Insulin" in human is a different sequence from "insulin" in zebrafish.</p>
-        </div>
-      </li>
-
-      <li class="step">
-        <div class="step-num">2</div>
-        <div class="step-body">
-          <h3>Open the right record</h3>
-          <p>Pick the entry marked <em>reviewed</em> (on UniProt: a gold star) or the most-cited RefSeq (on NCBI: accession starts with <code>NM_</code>, <code>NP_</code>, or <code>NC_</code>).</p>
-        </div>
-      </li>
-
-      <li class="step">
-        <div class="step-num">3</div>
-        <div class="step-body">
-          <h3>Switch the view to FASTA</h3>
-          <p>On NCBI, click <em>"Send to" → File → Format: FASTA</em>, or just click the <em>FASTA</em> link near the top of the record. FASTA is the simplest sequence format you'll meet.</p>
-
-          <div class="code-block">
-<pre><code>&gt;NP_002046.1 glyceraldehyde-3-phosphate dehydrogenase
-MGKVKVGVNGFGRIGRLVTRAAFNSGKVDIVAINDPFIDLNYMVYMFQYDSTHGKFHGTVK
-AENGKLVINGNPITIFQERDPSKIKWGDAGAEYVVESTGVFTTMEKAGAHLQGGAKRVII
-SAPSADAPMFVMGVNHEKYDNSLKIISNASCTTNCLAPLAKVIHDNFGIVEGLMTTVHAI
-...</code></pre>
-          </div>
-
-          <p>The first line (starting with <code>&gt;</code>) is the <strong>header</strong>. The lines after it are the sequence. AssemblyBench will strip the header for you automatically when you paste.</p>
-        </div>
-      </li>
-
-      <li class="step">
-        <div class="step-num">4</div>
-        <div class="step-body">
-          <h3>Decide: DNA or protein?</h3>
-          <p>AssemblyBench works with <strong>DNA</strong> (A, T, G, C). If you grabbed a protein sequence (which uses 20 letters like M, K, V, …), go back and find the <em>coding DNA</em> link on the same record. On UniProt, scroll to <em>"Sequences"</em> → <em>"Cross-references"</em> → click the EMBL/GenBank ID.</p>
-        </div>
-      </li>
-
-      <li class="step">
-        <div class="step-num">5</div>
-        <div class="step-body">
-          <h3>Copy the sequence — not the annotations</h3>
-          <p>This is the #1 beginner mistake. Many records show the sequence with line numbers, capitalized features, and footnotes. <strong>Only copy the letters.</strong></p>
-          <ul class="mistake-list">
-            <li><span class="bad">✕</span> <code>1 atggtgagca agggcgagga gctgttcacc</code> — has a number</li>
-            <li><span class="bad">✕</span> <code>&gt;header line\nATG...</code> if you keep the &gt; in a tool that doesn't strip it</li>
-            <li><span class="good">✓</span> <code>ATGGTGAGCAAGGGCGAGGAGCTGTTCACC...</code> — clean, just letters</li>
-          </ul>
-          <p class="muted small">AssemblyBench is forgiving: it strips numbers, spaces, newlines, FASTA headers, and non-ATGC characters automatically. But other tools won't be.</p>
-        </div>
-      </li>
-
-      <li class="step">
-        <div class="step-num">6</div>
-        <div class="step-body">
-          <h3>Paste into AssemblyBench</h3>
-          <p>Open the <a href="#bench" data-nav="bench">Bench</a>, click <em>+ Add a custom part</em> (or pick an existing part on your track), and paste your sequence into the <em>DNA sequence</em> box. Give it a clear name like <code>P_GAPDH</code> or <code>CDS_GFP</code>.</p>
-          <a href="#bench" class="btn btn-primary" data-nav="bench">Try it now →</a>
-        </div>
-      </li>
-    </ol>
-
-    <div class="callout callout-soft">
-      <strong>One last thing.</strong> Real cloning has subtleties this site doesn't cover —
-      codon optimization, restriction sites, reading frames, internal stop codons. AssemblyBench
-      is a teaching tool: it gets you fluent in the <em>vocabulary and logic</em> of plasmid
-      design so the real-world details click faster when you meet them.
+    <div class="callout" style="margin-top:36px;">
+      <strong>Ready to try?</strong> Head to the <a href="bench.html">AssemblyBench</a> to drop parts onto a track and build your first plasmid. If you don't know where to find DNA sequences yet, start with <a href="find.html">Find a Part</a>.
     </div>
   </div>
 </section>
@@ -485,10 +208,6 @@ SAPSADAPMFVMGVNHEKYDNSLKIISNASCTTNCLAPLAKVIHDNFGIVEGLMTTVHAI
   </div>
 </footer>
 
-<!-- Floating tooltip layer -->
-<div id="tooltip" class="tooltip" role="tooltip"></div>
-
-<script src="parts.js"></script>
-<script src="app.js"></script>
+<script src="nav.js"></script>
 </body>
 </html>
