@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AssemblyBench — Golden Gate planner</title>
+<meta name="description" content="MoClo-style hierarchical Golden Gate planner: turns a design from the Bench into primer designs, junction maps, a protocol, and a predicted assembled sequence." />
+<link rel="stylesheet" href="styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<header class="topnav" id="topnav">
+  <div class="nav-inner">
+    <a href="index.html" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="28" height="28">
+          <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/>
+          <circle cx="16" cy="5" r="2.6" fill="currentColor"/>
+          <circle cx="27" cy="16" r="2.6" fill="currentColor"/>
+          <circle cx="16" cy="27" r="2.6" fill="currentColor"/>
+          <circle cx="5" cy="16" r="2.6" fill="currentColor"/>
+        </svg>
+      </span>
+      <span class="brand-text">Assembly<strong>Bench</strong></span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="index.html">Introduction</a>
+      <a href="bench.html">AssemblyBench</a>
+      <a href="find.html">Find a Part</a>
+      <a href="grab.html">Grab the Sequence</a>
+      <a href="goldengate.html" class="is-active">Golden Gate</a>
+    </nav>
+    <button id="navToggle" class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+
+<!-- ===== Intro ===== -->
+<section class="section">
+  <div class="container">
+    <p class="eyebrow">For scientists</p>
+    <h2>Golden Gate planner</h2>
+    <p class="muted" style="max-width:780px;">
+      This page turns the design from the <a href="bench.html">Bench</a> into a
+      MoClo-style hierarchical Golden Gate cloning plan, following the approach in
+      Lee et&nbsp;al., <em>ACS Synth. Biol.</em> 2015
+      (<a href="https://pubs.acs.org/doi/10.1021/sb500366v" target="_blank" rel="noopener">10.1021/sb500366v</a>).
+      Two Type&nbsp;IIS restriction enzymes are used at different tiers:
+      <strong>BsaI</strong> for assembling parts into a cassette (transcription unit),
+      and <strong>BsmBI</strong> for assembling cassettes into a multigene plasmid.
+      Custom 4-bp fusion overhangs at each junction make the order deterministic.
+    </p>
+
+    <div class="gg-controls">
+      <div class="gg-control">
+        <label for="ggTier"><strong>Assembly tier</strong></label>
+        <select id="ggTier" class="gg-select">
+          <option value="cassette">Tier 2 · Parts → Cassette (BsaI)</option>
+          <option value="multigene">Tier 3 · Cassettes → Multigene (BsmBI)</option>
+        </select>
+      </div>
+      <div class="gg-control">
+        <label for="ggOverhangSet"><strong>Fusion overhang set</strong></label>
+        <select id="ggOverhangSet" class="gg-select">
+          <option value="ytk">YTK 2015 (Lee/Dueber)</option>
+          <option value="rotate">Generic orthogonal set</option>
+        </select>
+      </div>
+      <div class="gg-control gg-control-actions">
+        <button class="btn btn-ghost" id="ggReloadBtn" title="Reload the design from the Bench">↻ Reload from Bench</button>
+        <button class="btn btn-ghost" id="ggExampleBtn" title="Load the worked example">Load example</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Empty state (shown when no design is loaded) ===== -->
+<section class="section section-soft" id="ggEmpty" hidden>
+  <div class="container" style="text-align:center;">
+    <h3>No design loaded yet</h3>
+    <p class="muted">Build a plasmid on the <a href="bench.html">Bench</a> and click <em>Plan Golden Gate →</em>, or load the worked example here.</p>
+    <p>
+      <a href="bench.html" class="btn btn-primary">Open the Bench</a>
+      <button class="btn btn-ghost" id="ggExampleBtn2">Load example</button>
+    </p>
+  </div>
+</section>
+
+<!-- ===== Design summary ===== -->
+<section class="section section-soft" id="ggSummarySection">
+  <div class="container">
+    <div class="gg-summary">
+      <div>
+        <p class="muted small" style="margin:0 0 4px;">Construct</p>
+        <h3 id="ggName" style="margin:0;">—</h3>
+        <p class="muted small" id="ggStats" style="margin:6px 0 0;">—</p>
+      </div>
+      <div class="gg-enzyme-pill" id="ggEnzymePill">BsaI</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Junction map ===== -->
+<section class="section">
+  <div class="container">
+    <h3>Junction map</h3>
+    <p class="muted">Each adjacent pair of parts is joined by a unique 4-bp fusion overhang. A red flag means an internal Type&nbsp;IIS site was found inside that part — it must be removed (silent codon change for CDSs) before Golden Gate will work.</p>
+    <div class="gg-junctions" id="ggJunctions"></div>
+  </div>
+</section>
+
+<!-- ===== Primer table ===== -->
+<section class="section section-soft">
+  <div class="container">
+    <h3>Primer designs</h3>
+    <p class="muted">Each part is PCR-amplified with primers that add a Type&nbsp;IIS recognition site, a spacer, and the 4-bp fusion overhang. Annealing region length defaults to ~20&nbsp;bp; tweak in your favorite primer tool if Tm needs adjusting.</p>
+    <div class="gg-table-wrap">
+      <table class="gg-table" id="ggPrimerTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Part</th>
+            <th>Type</th>
+            <th>Forward primer (5'→3')</th>
+            <th>Reverse primer (5'→3')</th>
+            <th>Length</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <button class="btn btn-ghost" id="ggCopyPrimersBtn">Copy primers as TSV</button>
+  </div>
+</section>
+
+<!-- ===== Internal-site scan ===== -->
+<section class="section">
+  <div class="container">
+    <h3>Internal Type&nbsp;IIS site scan</h3>
+    <p class="muted">Golden Gate fails if any part contains an internal recognition site for the chosen enzyme. This scan checks both strands.</p>
+    <div class="gg-scan" id="ggScan"></div>
+  </div>
+</section>
+
+<!-- ===== Protocol ===== -->
+<section class="section section-soft">
+  <div class="container">
+    <h3>One-pot protocol</h3>
+    <p class="muted">A typical Golden Gate reaction. Adjust enzyme units and equimolar input ratios for your specific kit (NEB Golden Gate Assembly Kit, Engler protocol, etc.).</p>
+    <div class="gg-protocol" id="ggProtocol"></div>
+  </div>
+</section>
+
+<!-- ===== Predicted final sequence ===== -->
+<section class="section">
+  <div class="container">
+    <h3>Predicted assembled sequence</h3>
+    <p class="muted">Concatenated post-ligation sequence, computed by stitching parts at their fusion overhangs. Use it to verify your design or as a reference for Sanger sequencing.</p>
+    <div class="gg-final-stats" id="ggFinalStats"></div>
+    <div class="code-block"><pre id="ggFinalSeq"><code>—</code></pre></div>
+    <button class="btn btn-primary" id="ggDownloadFastaBtn">Download FASTA</button>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p>
+      AssemblyBench · An educational synthetic biology playground.
+      Workflow conceptually inspired by Lee et&nbsp;al. (2015), <em>ACS Synthetic Biology</em>,
+      <a href="https://pubs.acs.org/doi/10.1021/sb500366v" target="_blank" rel="noopener">10.1021/sb500366v</a>.
+    </p>
+    <p class="muted small">Not affiliated with any institution. For learning, not for clinical use.</p>
+  </div>
+</footer>
+
+<script src="nav.js"></script>
+<script src="parts.js"></script>
+<script src="goldengate.js"></script>
+</body>
+</html>

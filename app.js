@@ -88,6 +88,29 @@
     updateStats();
     renderCircular();
     runValidation();
+    persistAssembly();
+  }
+
+  // Persist the design so the Golden Gate planner can pick it up.
+  function persistAssembly() {
+    try {
+      const payload = {
+        name: $('#plasmidName')?.value || 'pMyConstruct',
+        parts: assembly.map(({ uid, type, name, sequence }) => ({ uid, type, name, sequence })),
+        savedAt: Date.now(),
+      };
+      localStorage.setItem('assemblybench:design', JSON.stringify(payload));
+    } catch (_) { /* storage disabled — ignore */ }
+  }
+
+  function handoffToGoldenGate() {
+    persistAssembly();
+    if (assembly.length === 0) {
+      if (!confirm('Your track is empty. Load the example before going to the Golden Gate planner?')) return;
+      loadExample();
+      persistAssembly();
+    }
+    window.location.href = 'goldengate.html';
   }
 
   function buildTrackPart(p) {
@@ -503,10 +526,12 @@
     $('#clearBtn').addEventListener('click', clearAll);
     $('#exportBtn').addEventListener('click', exportFASTA);
     $('#addCustomBtn').addEventListener('click', () => openEditor('__new__'));
+    $('#planGGBtn')?.addEventListener('click', handoffToGoldenGate);
 
-    // Plasmid name change updates circular view label
+    // Plasmid name change updates circular view label and persisted state
     $('#plasmidName').addEventListener('input', () => {
       if (currentView === 'circular') renderCircular();
+      persistAssembly();
     });
 
     // Dialog buttons
