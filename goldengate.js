@@ -67,6 +67,36 @@
   let enzymeName = 'BsaI';   // current enzyme
   let overhangSet = 'ytk';   // 'ytk' | 'rotate'
 
+  // Target window for the *annealing* portion of each primer. The planner will
+  // shrink/grow the anneal length per primer to land inside this window, and
+  // also tries to keep the forward / reverse pair within `pairDiff` of each
+  // other. Defaults follow standard Golden Gate practice (55–65 °C, Δ ≤ 2 °C).
+  const TM_DEFAULTS = { min: 55, max: 65, pairDiff: 2 };
+  const TM_STORAGE_KEY = 'assemblybench:goldengate:tmTargets';
+  let tmTargets = { ...TM_DEFAULTS };
+
+  function loadTmTargets() {
+    try {
+      const raw = localStorage.getItem(TM_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        const pick = (v, d) => Number.isFinite(+v) ? +v : d;
+        tmTargets = {
+          min:      pick(parsed.min,      TM_DEFAULTS.min),
+          max:      pick(parsed.max,      TM_DEFAULTS.max),
+          pairDiff: pick(parsed.pairDiff, TM_DEFAULTS.pairDiff),
+        };
+        if (tmTargets.min > tmTargets.max) {
+          tmTargets = { ...TM_DEFAULTS };
+        }
+      }
+    } catch (_) { /* ignore */ }
+  }
+  function persistTmTargets() {
+    try { localStorage.setItem(TM_STORAGE_KEY, JSON.stringify(tmTargets)); } catch (_) {}
+  }
+
   // ====================================================================
   // Sequence utilities
   // ====================================================================
@@ -407,15 +437,66 @@
   // ====================================================================
   const PRIMER_PAD = 'AA';      // protective 5' bases so the enzyme can bind
   const SPACER     = 'A';       // the single N between recognition site and overhang
-  const ANNEAL_LEN = 20;
+  const ANNEAL_MIN_LEN = 15;
+  const ANNEAL_MAX_LEN = 35;
+
+  // Pick anneal lengths (forward & reverse) for one part so that:
+  //   1. Both Tms land inside [tmTargets.min, tmTargets.max] if possible.
+  //   2. |fwdTm − revTm| ≤ tmTargets.pairDiff.
+  //   3. Both Tms sit close to the centre of the window.
+  // The search space is small (≤ ANNEAL_MAX_LEN − ANNEAL_MIN_LEN + 1 per side)
+  // so a brute-force scan is cheaper than anything analytical.
+  function optimizeAnnealLengths(seq) {
+    const len = seq.length;
+    if (len < 8) return { fwdLen: len, revLen: len };
+    const minL = Math.min(ANNEAL_MIN_LEN, len);
+    const maxL = Math.min(ANNEAL_MAX_LEN, len);
+
+    const fwdOptions = [];
+    const revOptions = [];
+    for (let L = minL; L <= maxL; L++) {
+      const ft = primerTm(seq.slice(0, L));
+      if (ft !== null) fwdOptions.push({ L, tm: ft });
+      const rt = primerTm(revComp(seq.slice(-L)));
+      if (rt !== null) revOptions.push({ L, tm: rt });
+    }
+    if (!fwdOptions.length || !revOptions.length) {
+      const fb = Math.min(20, len);
+      return { fwdLen: fb, revLen: fb };
+    }
+
+    const target = (tmTargets.min + tmTargets.max) / 2;
+    const oor = (tm) =>
+      tm < tmTargets.min ? tmTargets.min - tm
+      : tm > tmTargets.max ? tm - tmTargets.max
+      : 0;
+
+    let best = null;
+    let bestScore = Infinity;
+    for (const f of fwdOptions) {
+      for (const r of revOptions) {
+        const pairExcess = Math.max(0, Math.abs(f.tm - r.tm) - tmTargets.pairDiff);
+        // Heavy weight on out-of-range, then pair mismatch, then closeness to centre.
+        const score = 10 * (oor(f.tm) + oor(r.tm))
+                    + 4 * pairExcess
+                    + 0.05 * (Math.abs(f.tm - target) + Math.abs(r.tm - target));
+        if (score < bestScore) {
+          bestScore = score;
+          best = { fwdLen: f.L, revLen: r.L };
+        }
+      }
+    }
+    return best;
+  }
 
   function designPrimers(parts, overhangs, enzyme) {
     return parts.map((p, i) => {
       const upOh   = overhangs[i];
       const downOh = overhangs[i + 1];
       const seq = p.sequence || '';
-      const fwdAnneal = seq.slice(0, Math.min(ANNEAL_LEN, seq.length));
-      const revAnneal = revComp(seq.slice(-Math.min(ANNEAL_LEN, seq.length)));
+      const lens = optimizeAnnealLengths(seq);
+      const fwdAnneal = seq.slice(0, lens.fwdLen);
+      const revAnneal = revComp(seq.slice(-lens.revLen));
       const fwd = `${PRIMER_PAD}${enzyme.site}${SPACER}${upOh}${fwdAnneal}`;
       const rev = `${PRIMER_PAD}${enzyme.site}${SPACER}${revComp(downOh)}${revAnneal}`;
       // Tm reported for the annealing portion (the part that actually templates
@@ -432,6 +513,7 @@
         fwdAnnealTm: fwdTm, revAnnealTm: revTm,
         fwdHairpin, revHairpin,
         fwdAnneal, revAnneal,
+        fwdAnnealLen: lens.fwdLen, revAnnealLen: lens.revLen,
       };
     });
   }
@@ -523,6 +605,18 @@
     }
   }
 
+  function tmCellHTML(tm, isOOR, isPairMismatch) {
+    const classes = ['gg-primer-tm'];
+    if (isOOR) classes.push('is-out-of-range');
+    else if (isPairMismatch) classes.push('is-pair-mismatch');
+    const flag = isOOR
+      ? '<span class="gg-primer-tm-flag is-out-of-range" title="Outside the target Tm window">out of range</span>'
+      : isPairMismatch
+        ? '<span class="gg-primer-tm-flag is-pair-mismatch" title="Forward/reverse Tm differ by more than your target">pair Δ</span>'
+        : '';
+    return `<td class="${classes.join(' ')}">${formatTm(tm)}${flag}</td>`;
+  }
+
   function renderPrimerTable(parts, primers) {
     const tbody = $('#ggPrimerTable tbody');
     tbody.innerHTML = '';
@@ -536,6 +630,15 @@
         ? `${formatTm(r.revHairpin.tm)} <span class="muted small">(${r.revHairpin.stemLen}-bp stem, ${r.revHairpin.loopLen}-nt loop)</span>`
         : '<span class="muted small">none detected</span>';
 
+      const fwdOOR = r.fwdAnnealTm !== null
+        && (r.fwdAnnealTm < tmTargets.min || r.fwdAnnealTm > tmTargets.max);
+      const revOOR = r.revAnnealTm !== null
+        && (r.revAnnealTm < tmTargets.min || r.revAnnealTm > tmTargets.max);
+      const pairDiff = (r.fwdAnnealTm !== null && r.revAnnealTm !== null)
+        ? Math.abs(r.fwdAnnealTm - r.revAnnealTm)
+        : null;
+      const pairBad = pairDiff !== null && pairDiff > tmTargets.pairDiff;
+
       const fwdRow = document.createElement('tr');
       fwdRow.className = 'gg-primer-row';
       fwdRow.innerHTML = `
@@ -546,8 +649,8 @@
         </td>
         <td><span class="gg-dir gg-dir-fwd">fwd →</span></td>
         <td><code class="gg-primer-seq">${r.fwd}</code></td>
-        <td class="gg-primer-len">${r.fwdLen} nt</td>
-        <td class="gg-primer-tm">${formatTm(r.fwdAnnealTm)}</td>
+        <td class="gg-primer-len">${r.fwdLen} nt<span class="gg-primer-anneal">anneal ${r.fwdAnnealLen} bp</span></td>
+        ${tmCellHTML(r.fwdAnnealTm, fwdOOR, !fwdOOR && pairBad)}
         <td class="gg-primer-hp">${fwdHairpinCell}</td>
       `;
       tbody.appendChild(fwdRow);
@@ -557,12 +660,69 @@
       revRow.innerHTML = `
         <td><span class="gg-dir gg-dir-rev">← rev</span></td>
         <td><code class="gg-primer-seq">${r.rev}</code></td>
-        <td class="gg-primer-len">${r.revLen} nt</td>
-        <td class="gg-primer-tm">${formatTm(r.revAnnealTm)}</td>
+        <td class="gg-primer-len">${r.revLen} nt<span class="gg-primer-anneal">anneal ${r.revAnnealLen} bp</span></td>
+        ${tmCellHTML(r.revAnnealTm, revOOR, !revOOR && pairBad)}
         <td class="gg-primer-hp">${revHairpinCell}</td>
       `;
       tbody.appendChild(revRow);
     });
+  }
+
+  function updateTmDisplay() {
+    const fmt = (n) => {
+      const v = Number(n);
+      return Number.isInteger(v) ? v.toString() : v.toFixed(1);
+    };
+    const rangeEl = $('#ggTmRangeLabel');
+    if (rangeEl) rangeEl.textContent = `${fmt(tmTargets.min)}–${fmt(tmTargets.max)} °C`;
+    const pairEl = $('#ggTmPairLabel');
+    if (pairEl) pairEl.textContent = `${fmt(tmTargets.pairDiff)} °C`;
+  }
+
+  function openTmDialog() {
+    const dlg = $('#ggTmDialog');
+    if (!dlg) return;
+    $('#ggTmMin').value = tmTargets.min;
+    $('#ggTmMax').value = tmTargets.max;
+    $('#ggTmPair').value = tmTargets.pairDiff;
+    $('#ggTmDialogError').textContent = '';
+    if (typeof dlg.showModal === 'function') dlg.showModal();
+    else dlg.setAttribute('open', '');
+  }
+  function closeTmDialog() {
+    const dlg = $('#ggTmDialog');
+    if (!dlg) return;
+    if (dlg.open && typeof dlg.close === 'function') dlg.close();
+    else dlg.removeAttribute('open');
+  }
+  function applyTmDialog() {
+    const min = parseFloat($('#ggTmMin').value);
+    const max = parseFloat($('#ggTmMax').value);
+    const pair = parseFloat($('#ggTmPair').value);
+    const err = $('#ggTmDialogError');
+    if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(pair)) {
+      err.textContent = 'Please enter numeric values for all three fields.';
+      return;
+    }
+    if (min >= max) {
+      err.textContent = 'Minimum Tm must be lower than maximum Tm.';
+      return;
+    }
+    if (pair < 0) {
+      err.textContent = 'Pair difference must be ≥ 0 °C.';
+      return;
+    }
+    tmTargets = { min, max, pairDiff: pair };
+    persistTmTargets();
+    updateTmDisplay();
+    closeTmDialog();
+    rerender();
+  }
+  function resetTmDialog() {
+    $('#ggTmMin').value = TM_DEFAULTS.min;
+    $('#ggTmMax').value = TM_DEFAULTS.max;
+    $('#ggTmPair').value = TM_DEFAULTS.pairDiff;
+    $('#ggTmDialogError').textContent = '';
   }
 
   function renderScan(parts, enzyme) {
@@ -1071,6 +1231,14 @@
     $('#ggExportCsvBtn')?.addEventListener('click', exportExperimentCSV);
     $('#ggDownloadFastaBtn').addEventListener('click', downloadFasta);
 
+    // Tm-target editor
+    $('#ggEditTmBtn')?.addEventListener('click', openTmDialog);
+    $('#ggTmApply')?.addEventListener('click', applyTmDialog);
+    $('#ggTmCancel')?.addEventListener('click', closeTmDialog);
+    $('#ggTmDialogClose')?.addEventListener('click', closeTmDialog);
+    $('#ggTmReset')?.addEventListener('click', resetTmDialog);
+    $('#ggTmDialog')?.addEventListener('cancel', (e) => { e.preventDefault(); closeTmDialog(); });
+
     // Apply-suggestion buttons (event delegation)
     $('#ggScan').addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-apply-uid]');
@@ -1086,6 +1254,8 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     bind();
+    loadTmTargets();
+    updateTmDisplay();
     loadFromStorage();
     rerender();
   });

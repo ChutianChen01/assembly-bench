@@ -1191,6 +1191,55 @@ code { background: var(--bg-soft); padding: 1px 6px; border-radius: 5px; }
   font-feature-settings: 'zero' 1, 'tnum' 1, 'ss01' 1;
   font-variant-numeric: tabular-nums slashed-zero;
 }
+.gg-primer-tm.is-out-of-range {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, .08);
+}
+.gg-primer-tm.is-pair-mismatch {
+  color: #b45309;
+  background: rgba(245, 158, 11, .10);
+}
+.gg-primer-tm-flag {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--font-sans, inherit);
+}
+.gg-primer-tm-flag.is-out-of-range { background: #fee2e2; color: #b91c1c; }
+.gg-primer-tm-flag.is-pair-mismatch { background: #fef3c7; color: #b45309; }
+.gg-primer-anneal {
+  display: block;
+  font-size: .72rem;
+  color: var(--muted);
+}
+
+/* Tm target editor strip — sits above the primer table. */
+.gg-tm-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin: 8px 0 14px;
+  padding: 8px 14px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: .92rem;
+  color: var(--ink);
+}
+.gg-tm-bar strong {
+  font-family: var(--font-mono);
+  font-feature-settings: 'zero' 1, 'tnum' 1, 'ss01' 1;
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+.btn.btn-sm {
+  padding: 4px 12px;
+  font-size: .82rem;
+  font-weight: 600;
+}
 
 /* Domestication helper */
 .gg-help {
