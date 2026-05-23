@@ -14,6 +14,52 @@
   // localStorage keys (shared with the Golden Gate planner)
   const STORAGE_KEY = 'assemblybench:design';
 
+  // 1×1 transparent PNG, used to replace the browser's default drag image so
+  // our custom follower is the only visible "ghost" while dragging.
+  const TRANSPARENT_PNG = (() => {
+    const img = new Image();
+    img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+    return img;
+  })();
+
+  // Custom drag-follower (a styled "ghost chip" that tracks the cursor).
+  const follower = {
+    el: null,
+    offsetX: 12,
+    offsetY: 12,
+    show(html, kind) {
+      if (!this.el) {
+        this.el = document.createElement('div');
+        this.el.className = 'drag-follower';
+        document.body.appendChild(this.el);
+      }
+      this.el.innerHTML = html;
+      this.el.dataset.kind = kind || 'part';
+      this.el.classList.add('is-visible');
+    },
+    move(x, y) {
+      if (!this.el) return;
+      this.el.style.left = (x + this.offsetX) + 'px';
+      this.el.style.top  = (y + this.offsetY) + 'px';
+    },
+    hide() {
+      if (this.el) this.el.classList.remove('is-visible');
+    },
+  };
+
+  // Render the inner HTML of a "ghost chip" for a part — matches the look of
+  // a track-part so it's immediately recognizable while flying around.
+  function followerHTMLForPart(p) {
+    const c = meta[p.type]?.color || '#94a3b8';
+    return `
+      <div class="track-part-ghost" style="--c:${c}">
+        <span class="tp-type">${escapeHTML(meta[p.type]?.label || p.type)}</span>
+        <span class="tp-name">${escapeHTML(p.name)}</span>
+        <span class="tp-bp">${(p.sequence || '').length} bp</span>
+      </div>
+    `;
+  }
+
   const meta = window.PART_TYPE_META;
   const library = window.PART_LIBRARY;
   const example = window.EXAMPLE_ASSEMBLY;
@@ -71,8 +117,16 @@
         li.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'copy';
         e.dataTransfer.setData('text/library-id', part.id);
+        // Replace the browser's default drag image with our own follower.
+        try { e.dataTransfer.setDragImage(TRANSPARENT_PNG, 0, 0); } catch (_) {}
+        follower.show(followerHTMLForPart(part), 'new');
+        follower.move(e.clientX, e.clientY);
       });
-      li.addEventListener('dragend', () => li.classList.remove('dragging'));
+      li.addEventListener('dragend', () => {
+        li.classList.remove('dragging');
+        follower.hide();
+        hideInsertionMarker();
+      });
       attachTooltip(li, () => `<strong>${escapeHTML(part.name)}</strong><br>${escapeHTML(part.summary || '')}<br><span class="muted small">Drag onto the track or click + Add</span>`);
       list.appendChild(li);
     }
@@ -203,8 +257,15 @@
       el.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/uid', p.uid);
+      try { e.dataTransfer.setDragImage(TRANSPARENT_PNG, 0, 0); } catch (_) {}
+      follower.show(followerHTMLForPart(p), 'reorder');
+      follower.move(e.clientX, e.clientY);
     });
-    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      follower.hide();
+      hideInsertionMarker();
+    });
 
     attachTooltip(el, () => {
       const m = meta[p.type];
@@ -680,6 +741,15 @@
 
     // Track DnD
     setupTrackDnD();
+
+    // Global cursor follower: dragover bubbles up to document with clientX/Y,
+    // so we can keep the ghost chip glued to the cursor wherever it goes.
+    document.addEventListener('dragover', (e) => {
+      if (!follower.el || !follower.el.classList.contains('is-visible')) return;
+      follower.move(e.clientX, e.clientY);
+    });
+    document.addEventListener('drop',    () => { follower.hide(); hideInsertionMarker(); });
+    document.addEventListener('dragend', () => { follower.hide(); hideInsertionMarker(); });
   }
 
   // ------- Boot -------

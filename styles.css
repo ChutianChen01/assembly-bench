@@ -541,6 +541,64 @@ code { background: var(--bg-soft); padding: 1px 6px; border-radius: 5px; }
   transition: background .15s ease, border-color .15s ease;
 }
 
+/* Floating drag preview that follows the cursor */
+.drag-follower {
+  position: fixed;
+  z-index: 200;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateZ(0) scale(.98);
+  transition: opacity .08s ease, transform .08s ease;
+  filter: drop-shadow(0 10px 22px rgba(15,23,42,.22));
+}
+.drag-follower.is-visible {
+  opacity: 0.78;
+  transform: translateZ(0) scale(1) rotate(-2deg);
+}
+.drag-follower .track-part-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 8px 8px;
+  background: #fff;
+  border: 1.5px solid var(--c);
+  border-left: 6px solid var(--c);
+  border-radius: 10px;
+  font-size: .9rem;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.drag-follower .tp-type {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--c);
+  font-weight: 700;
+  margin-right: 4px;
+}
+.drag-follower .tp-bp {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  color: var(--muted);
+  margin-left: 6px;
+  font-feature-settings: 'zero' 1, 'tnum' 1, 'ss01' 1;
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+.drag-follower[data-kind="new"] .track-part-ghost::after {
+  content: '+ NEW';
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: #fff;
+  background: var(--brand);
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-left: 6px;
+}
+
 /* Drag-and-drop insertion marker */
 .track-drop-marker {
   position: absolute;
