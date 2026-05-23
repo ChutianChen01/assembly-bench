@@ -261,11 +261,13 @@
       startDrag('reorder', p, p.uid);
       follower.show(followerHTMLForPart(p), 'reorder');
       follower.move(e.clientX, e.clientY);
+      $('#discardZone')?.classList.add('is-active');
     });
     el.addEventListener('dragend', () => {
       el.classList.remove('dragging');
       follower.hide();
       endDrag();
+      $('#discardZone')?.classList.remove('is-active', 'is-drop-target');
     });
 
     return el;
@@ -314,16 +316,42 @@
     dragState = null;
   }
 
-  // Compute the visual insertion index for an x-coordinate, ignoring the
-  // currently-hidden source element and our own placeholder.
-  function insertionIndexFor(clientX, excludeUid) {
+  // Compute the visual insertion index for a cursor coordinate. The track is a
+  // wrapping flex container, so parts can appear on multiple rows — we need to
+  // pick the row the cursor is over (or nearest to) before doing the x-check,
+  // otherwise the placeholder would jump to the wrong row whenever the parts
+  // wrap to a second line.
+  function insertionIndexFor(clientX, clientY, excludeUid) {
     const track = $('#track');
     const parts = $$('.track-part', track).filter((el) =>
       el.dataset.uid !== excludeUid && !el.classList.contains('is-source-hidden')
     );
+    if (parts.length === 0) return 0;
+
+    const rects = parts.map((el) => el.getBoundingClientRect());
+
+    // Pick the row whose vertical range contains the cursor, or the closest.
+    let rowIdx = rects.findIndex((r) => clientY >= r.top && clientY <= r.bottom);
+    if (rowIdx === -1) {
+      let best = Infinity;
+      rects.forEach((r, i) => {
+        const dy = clientY < r.top ? r.top - clientY : clientY - r.bottom;
+        if (dy < best) { best = dy; rowIdx = i; }
+      });
+    }
+    const rowTop = rects[rowIdx].top;
+    const rowBottom = rects[rowIdx].bottom;
+    const sameRow = (r) => r.bottom >= rowTop && r.top <= rowBottom;
+
+    // Within the row, the first part whose horizontal center is past the cursor.
     for (let i = 0; i < parts.length; i++) {
-      const r = parts[i].getBoundingClientRect();
-      if (clientX < r.left + r.width / 2) return i;
+      if (!sameRow(rects[i])) continue;
+      if (clientX < rects[i].left + rects[i].width / 2) return i;
+    }
+    // Cursor is past the last part on this row — insert right after it
+    // (== before the first part on the next row, if any).
+    for (let i = 0; i < parts.length; i++) {
+      if (rects[i].top > rowBottom) return i;
     }
     return parts.length;
   }
@@ -354,6 +382,44 @@
     }
   }
 
+  // Drag a track-part onto this zone to remove it from the design.
+  function setupDiscardZone() {
+    const zone = $('#discardZone');
+    if (!zone) return;
+    const hasType = (dt, t) => {
+      const types = dt.types || [];
+      if (typeof types.contains === 'function') return types.contains(t);
+      return Array.from(types).indexOf(t) !== -1;
+    };
+    zone.addEventListener('dragover', (e) => {
+      // Only accept track-part (reorder) drags — library drags can't discard
+      // a part that isn't on the design yet.
+      if (!hasType(e.dataTransfer, 'text/uid')) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      zone.classList.add('is-drop-target');
+      // The cursor is over the discard zone, so the in-track placeholder
+      // shouldn't be promising a drop position.
+      hideInsertionMarker();
+      const track = $('#track');
+      if (track) track.classList.remove('is-drop-target');
+    });
+    zone.addEventListener('dragleave', (e) => {
+      if (!zone.contains(e.relatedTarget)) {
+        zone.classList.remove('is-drop-target');
+      }
+    });
+    zone.addEventListener('drop', (e) => {
+      if (!hasType(e.dataTransfer, 'text/uid')) return;
+      e.preventDefault();
+      zone.classList.remove('is-drop-target', 'is-active');
+      const draggedUid = e.dataTransfer.getData('text/uid');
+      if (!draggedUid) return;
+      assembly = assembly.filter((p) => p.uid !== draggedUid);
+      renderTrack();
+    });
+  }
+
   function setupTrackDnD() {
     const track = $('#track');
 
@@ -374,7 +440,7 @@
         ? track.querySelector('.track-part.dragging')?.dataset.uid
         : null;
       e.dataTransfer.dropEffect = draggedUid ? 'move' : 'copy';
-      const idx = insertionIndexFor(e.clientX, draggedUid);
+      const idx = insertionIndexFor(e.clientX, e.clientY, draggedUid);
       showInsertionMarker(idx, draggedUid);
     });
     track.addEventListener('dragleave', (e) => {
@@ -395,7 +461,7 @@
       if (libraryId) {
         const src = library.find((p) => p.id === libraryId);
         if (!src) return;
-        const idx = insertionIndexFor(e.clientX, null);
+        const idx = insertionIndexFor(e.clientX, e.clientY, null);
         const newPart = {
           uid: uid(),
           id: src.id,
@@ -414,7 +480,7 @@
       const draggedIdx = assembly.findIndex((p) => p.uid === draggedUid);
       if (draggedIdx === -1) return;
 
-      const idx = insertionIndexFor(e.clientX, draggedUid);
+      const idx = insertionIndexFor(e.clientX, e.clientY, draggedUid);
       const [moved] = assembly.splice(draggedIdx, 1);
       assembly = assembly.slice(0, idx).concat([moved]).concat(assembly.slice(idx));
       renderTrack();
@@ -791,6 +857,7 @@
 
     // Track DnD
     setupTrackDnD();
+    setupDiscardZone();
 
     // Global cursor follower: dragover bubbles up to document with clientX/Y,
     // so we can keep the ghost chip glued to the cursor wherever it goes.

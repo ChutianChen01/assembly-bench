@@ -731,6 +731,30 @@ code { background: var(--bg-soft); padding: 1px 6px; border-radius: 5px; }
   margin-left: 6px;
 }
 
+/* Drop-to-discard target — only present while a track part is being dragged. */
+.discard-zone {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 2px dashed var(--line-2);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--muted);
+  font-size: .92rem;
+  font-weight: 500;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+.discard-zone.is-active { display: flex; }
+.discard-zone.is-drop-target {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239, 68, 68, .06);
+}
+.discard-zone .discard-icon { flex: 0 0 auto; }
+
 .track-divider {
   align-self: stretch;
   width: 2px;
