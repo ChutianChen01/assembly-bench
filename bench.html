@@ -46,6 +46,12 @@
     <p class="eyebrow">The Bench</p>
     <h2>Build a plasmid, part by part</h2>
     <p class="muted">Pick parts from the library, drop them on the assembly track, and watch your plasmid come together. Click any part on the track to edit its sequence or remove it. New to this? Read the <a href="index.html">Introduction</a> first.</p>
+    <ul class="bench-tips muted small">
+      <li><strong>Drag</strong> a library row directly onto the track to insert a new part where you drop it.</li>
+      <li><strong>Drag</strong> a part on the track to reorder — a blue line shows exactly where it will land.</li>
+      <li><strong>Click</strong> a track part to edit its sequence, rename it, or remove it.</li>
+      <li>Your design is <strong>auto-saved</strong> in this browser, so you can come back later or jump to the Golden Gate planner without losing work.</li>
+    </ul>
 
     <div class="bench-grid">
 
@@ -87,9 +93,11 @@
           <button class="view-tab" data-view="circular">Circular view</button>
         </div>
 
+        <p class="bench-notice" id="benchNotice" role="status" aria-live="polite"></p>
+
         <div class="track-wrap" id="trackWrap">
           <div class="track" id="track" data-empty="true">
-            <p class="track-empty">Your assembly is empty. Add parts from the library on the left to begin.</p>
+            <p class="track-empty">Your assembly is empty. Drag a part from the library on the left, or click <strong>+ Add</strong> to begin.</p>
           </div>
         </div>
 

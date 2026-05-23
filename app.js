@@ -11,6 +11,9 @@
   let currentView = 'linear'; // 'linear' | 'circular'
   let editingUid = null; // uid of part being edited, or '__new__' for a brand-new custom part
 
+  // localStorage keys (shared with the Golden Gate planner)
+  const STORAGE_KEY = 'assemblybench:design';
+
   const meta = window.PART_TYPE_META;
   const library = window.PART_LIBRARY;
   const example = window.EXAMPLE_ASSEMBLY;
@@ -53,6 +56,8 @@
     for (const part of items) {
       const li = document.createElement('li');
       li.className = 'library-item';
+      li.draggable = true;
+      li.dataset.libraryId = part.id;
       const c = meta[part.type]?.color || '#94a3b8';
       li.innerHTML = `
         <span class="li-swatch" style="--c:${c}"></span>
@@ -62,7 +67,13 @@
         </span>
         <button type="button" data-add="${part.id}" title="Add to assembly">+ Add</button>
       `;
-      attachTooltip(li, () => `<strong>${escapeHTML(part.name)}</strong><br>${escapeHTML(part.summary || '')}`);
+      li.addEventListener('dragstart', (e) => {
+        li.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'copy';
+        e.dataTransfer.setData('text/library-id', part.id);
+      });
+      li.addEventListener('dragend', () => li.classList.remove('dragging'));
+      attachTooltip(li, () => `<strong>${escapeHTML(part.name)}</strong><br>${escapeHTML(part.summary || '')}<br><span class="muted small">Drag onto the track or click + Add</span>`);
       list.appendChild(li);
     }
   }
@@ -73,7 +84,10 @@
     track.innerHTML = '';
     if (assembly.length === 0) {
       track.dataset.empty = 'true';
-      track.innerHTML = '<p class="track-empty">Your assembly is empty. Add parts from the library on the left to begin.</p>';
+      const p = document.createElement('p');
+      p.className = 'track-empty';
+      p.innerHTML = 'Your assembly is empty. Drag a part from the library on the left, or click <strong>+ Add</strong> to begin.';
+      track.appendChild(p);
     } else {
       track.dataset.empty = 'false';
       assembly.forEach((p, i) => {
@@ -85,22 +99,73 @@
         track.appendChild(buildTrackPart(p));
       });
     }
+    // Always keep the drop marker available — it's positioned absolutely.
+    const marker = document.createElement('span');
+    marker.id = 'dropMarker';
+    marker.className = 'track-drop-marker';
+    marker.setAttribute('aria-hidden', 'true');
+    track.appendChild(marker);
+
     updateStats();
     renderCircular();
     runValidation();
     persistAssembly();
   }
 
-  // Persist the design so the Golden Gate planner can pick it up.
+  // Persist the design so it survives reloads and Golden Gate hand-offs.
   function persistAssembly() {
     try {
       const payload = {
         name: $('#plasmidName')?.value || 'pMyConstruct',
-        parts: assembly.map(({ uid, type, name, sequence }) => ({ uid, type, name, sequence })),
+        parts: assembly.map(({ uid, id, type, name, sequence, summary }) => ({
+          uid, id, type, name, sequence, summary,
+        })),
         savedAt: Date.now(),
       };
-      localStorage.setItem('assemblybench:design', JSON.stringify(payload));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (_) { /* storage disabled — ignore */ }
+  }
+
+  // Restore a previously persisted design (e.g. user came back from Golden Gate).
+  function restoreAssembly() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.parts) || parsed.parts.length === 0) return false;
+      assembly = parsed.parts
+        .filter((p) => p && typeof p.sequence === 'string')
+        .map((p) => ({
+          uid: p.uid || uid(),
+          id: p.id,
+          type: p.type || 'other',
+          name: p.name || 'Untitled',
+          sequence: cleanSequence(p.sequence),
+          summary: p.summary,
+        }));
+      const nameEl = $('#plasmidName');
+      if (nameEl && typeof parsed.name === 'string' && parsed.name.trim()) {
+        nameEl.value = parsed.name;
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // Forget the persisted design when the user explicitly clears the bench.
+  function forgetPersisted() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+  }
+
+  // Briefly show a status message under the workspace head.
+  function flashNotice(message) {
+    const host = $('#benchNotice');
+    if (!host) return;
+    host.textContent = message;
+    host.classList.add('is-visible');
+    clearTimeout(flashNotice._t);
+    flashNotice._t = setTimeout(() => host.classList.remove('is-visible'), 4000);
   }
 
   function handoffToGoldenGate() {
@@ -149,38 +214,108 @@
     return el;
   }
 
+  // Compute the visual insertion index for an x-coordinate. `excludeUid` lets us
+  // skip the currently-dragged element when reordering.
+  function insertionIndexFor(clientX, excludeUid) {
+    const track = $('#track');
+    const parts = $$('.track-part', track).filter((el) => el.dataset.uid !== excludeUid);
+    for (let i = 0; i < parts.length; i++) {
+      const r = parts[i].getBoundingClientRect();
+      if (clientX < r.left + r.width / 2) return i;
+    }
+    return parts.length;
+  }
+
+  // Position the insertion marker between the right parts.
+  function showInsertionMarker(index, excludeUid) {
+    const track = $('#track');
+    const marker = $('#dropMarker');
+    if (!marker) return;
+    const parts = $$('.track-part', track).filter((el) => el.dataset.uid !== excludeUid);
+    const trackRect = track.getBoundingClientRect();
+
+    let left;
+    if (parts.length === 0) {
+      left = trackRect.width / 2;
+    } else if (index >= parts.length) {
+      const r = parts[parts.length - 1].getBoundingClientRect();
+      left = r.right - trackRect.left + 6;
+    } else {
+      const r = parts[index].getBoundingClientRect();
+      left = r.left - trackRect.left - 6;
+    }
+    marker.style.left = `${Math.max(8, Math.min(trackRect.width - 8, left))}px`;
+    marker.classList.add('is-visible');
+  }
+
+  function hideInsertionMarker() {
+    const marker = $('#dropMarker');
+    if (marker) marker.classList.remove('is-visible');
+  }
+
   function setupTrackDnD() {
     const track = $('#track');
 
+    const hasType = (dt, t) => {
+      const types = dt.types || [];
+      // DOMStringList vs Array — handle both.
+      if (typeof types.contains === 'function') return types.contains(t);
+      return Array.from(types).indexOf(t) !== -1;
+    };
     track.addEventListener('dragover', (e) => {
+      // Allow drops from either the library (new part) or within the track (reorder).
+      const isUid = hasType(e.dataTransfer, 'text/uid');
+      const isLib = hasType(e.dataTransfer, 'text/library-id');
+      if (!isUid && !isLib) return;
       e.preventDefault();
       track.classList.add('is-drop-target');
-      e.dataTransfer.dropEffect = 'move';
+      const draggedUid = isUid
+        ? track.querySelector('.track-part.dragging')?.dataset.uid
+        : null;
+      e.dataTransfer.dropEffect = draggedUid ? 'move' : 'copy';
+      const idx = insertionIndexFor(e.clientX, draggedUid);
+      showInsertionMarker(idx, draggedUid);
     });
     track.addEventListener('dragleave', (e) => {
-      if (e.target === track) track.classList.remove('is-drop-target');
+      if (e.target === track || !track.contains(e.relatedTarget)) {
+        track.classList.remove('is-drop-target');
+        hideInsertionMarker();
+      }
     });
     track.addEventListener('drop', (e) => {
       e.preventDefault();
       track.classList.remove('is-drop-target');
+      hideInsertionMarker();
+
       const draggedUid = e.dataTransfer.getData('text/uid');
+      const libraryId = e.dataTransfer.getData('text/library-id');
+
+      // Case 1: dropped a library part onto the track — insert a new copy.
+      if (libraryId) {
+        const src = library.find((p) => p.id === libraryId);
+        if (!src) return;
+        const idx = insertionIndexFor(e.clientX, null);
+        const newPart = {
+          uid: uid(),
+          id: src.id,
+          type: src.type,
+          name: src.name,
+          sequence: src.sequence,
+          summary: src.summary,
+        };
+        assembly = assembly.slice(0, idx).concat([newPart]).concat(assembly.slice(idx));
+        renderTrack();
+        return;
+      }
+
+      // Case 2: reorder an existing track part.
       if (!draggedUid) return;
       const draggedIdx = assembly.findIndex((p) => p.uid === draggedUid);
       if (draggedIdx === -1) return;
 
-      // Figure out where to insert based on cursor position
-      const parts = $$('.track-part', track).filter((el) => el.dataset.uid !== draggedUid);
-      let insertBefore = parts.length; // default: end
-      for (let i = 0; i < parts.length; i++) {
-        const r = parts[i].getBoundingClientRect();
-        if (e.clientX < r.left + r.width / 2) { insertBefore = i; break; }
-      }
-
+      const idx = insertionIndexFor(e.clientX, draggedUid);
       const [moved] = assembly.splice(draggedIdx, 1);
-      // Recompute insertion index relative to the trimmed array
-      const others = assembly; // already without dragged
-      // insertBefore is an index in the visual order of `others`
-      assembly = others.slice(0, insertBefore).concat([moved]).concat(others.slice(insertBefore));
+      assembly = assembly.slice(0, idx).concat([moved]).concat(assembly.slice(idx));
       renderTrack();
     });
   }
@@ -424,6 +559,7 @@
     if (assembly.length === 0) return;
     if (!confirm('Clear the assembly track? This can\'t be undone.')) return;
     assembly = [];
+    forgetPersisted();
     renderTrack();
   }
 
@@ -550,6 +686,10 @@
   document.addEventListener('DOMContentLoaded', () => {
     bind();
     renderLibrary();
+    const restored = restoreAssembly();
     renderTrack();
+    if (restored && assembly.length > 0) {
+      flashNotice(`Restored your last design — ${assembly.length} part${assembly.length === 1 ? '' : 's'} loaded. Use Clear to start over.`);
+    }
   });
 })();

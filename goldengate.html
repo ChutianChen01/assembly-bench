@@ -119,31 +119,45 @@
 <section class="section section-soft">
   <div class="container">
     <h3>Primer designs</h3>
-    <p class="muted">Each part is PCR-amplified with primers that add a Type&nbsp;IIS recognition site, a spacer, and the 4-bp fusion overhang. Annealing region length defaults to ~20&nbsp;bp; tweak in your favorite primer tool if Tm needs adjusting.</p>
+    <p class="muted">Each part is PCR-amplified with primers that add a Type&nbsp;IIS recognition site, a spacer, and the 4-bp fusion overhang. Annealing region defaults to ~20&nbsp;bp. Tm is the nearest-neighbor (SantaLucia 1998) Tm of the <em>annealing</em> portion at 250&nbsp;nM primer + 50&nbsp;mM Na⁺. Hairpin Tm is an estimate of the strongest self-complementary stem in the full primer — keep it &gt;10 °C below your annealing temperature to avoid secondary structure.</p>
     <div class="gg-table-wrap">
       <table class="gg-table" id="ggPrimerTable">
         <thead>
           <tr>
             <th>#</th>
             <th>Part</th>
-            <th>Type</th>
-            <th>Forward primer (5'→3')</th>
-            <th>Reverse primer (5'→3')</th>
+            <th>Direction</th>
+            <th>Sequence (5'→3')</th>
             <th>Length</th>
+            <th>Tm<br><span class="th-sub">(anneal)</span></th>
+            <th>Hairpin Tm<br><span class="th-sub">(secondary structure)</span></th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
     </div>
-    <button class="btn btn-ghost" id="ggCopyPrimersBtn">Copy primers as TSV</button>
+    <div class="gg-row-actions">
+      <button class="btn btn-ghost" id="ggCopyPrimersBtn">Copy primers as TSV</button>
+      <button class="btn btn-ghost" id="ggExportCsvBtn">Export experiment as CSV</button>
+    </div>
   </div>
 </section>
 
 <!-- ===== Internal-site scan ===== -->
 <section class="section">
   <div class="container">
-    <h3>Internal Type&nbsp;IIS site scan</h3>
-    <p class="muted">Golden Gate fails if any part contains an internal recognition site for the chosen enzyme. This scan checks both strands.</p>
+    <h3>Internal Type&nbsp;IIS site scan &amp; domestication helper</h3>
+    <details class="gg-help" open>
+      <summary>How to remove internal sites (domestication workflow)</summary>
+      <ol class="gg-help-list">
+        <li><strong>Find</strong> every internal copy of the recognition site (forward and reverse strand) — the scan below does this automatically.</li>
+        <li><strong>Inside a CDS</strong>, change one of the codons that overlap the site to a <em>synonymous</em> codon, so the protein sequence is unchanged but the recognition motif is destroyed. The helper suggests an explicit base swap for each hit.</li>
+        <li><strong>Outside a CDS</strong> (promoter, RBS, terminator, origin, marker UTR), make the smallest single-base change that breaks the site while staying inside the functional region — favor changes in spacer regions over conserved motifs.</li>
+        <li>Re-run the scan after every substitution to confirm both the chosen enzyme <em>and</em> any other Type IIS enzyme you may use downstream are clean.</li>
+        <li>When the part is clean, click <em>Apply suggested fix to this part</em> to write the substitution back into your design.</li>
+      </ol>
+    </details>
+    <p class="muted">Golden Gate fails if any part contains an internal recognition site for the chosen enzyme. This scan checks both strands and, for each hit, offers a silent / minimally invasive base swap that destroys the motif.</p>
     <div class="gg-scan" id="ggScan"></div>
   </div>
 </section>
