@@ -554,8 +554,8 @@ code { background: var(--bg-soft); padding: 1px 6px; border-radius: 5px; }
   filter: drop-shadow(0 10px 22px rgba(15,23,42,.22));
 }
 .drag-follower.is-visible {
-  opacity: 0.78;
-  transform: translateZ(0) scale(1) rotate(-2deg);
+  opacity: 1;
+  transform: translateZ(0) scale(1);
 }
 .drag-follower .track-part-ghost {
   display: inline-flex;
@@ -599,34 +599,53 @@ code { background: var(--bg-soft); padding: 1px 6px; border-radius: 5px; }
   margin-left: 6px;
 }
 
-/* Drag-and-drop insertion marker */
-.track-drop-marker {
-  position: absolute;
-  top: 12px;
-  bottom: 12px;
-  width: 4px;
-  border-radius: 2px;
-  background: var(--brand);
-  box-shadow: 0 0 0 4px rgba(37,99,235,.18);
-  transform: translateX(-50%);
-  pointer-events: none;
+/* Drop-position placeholder: a chip-shaped dimmed ghost slotted into the
+   track at the projected drop index so other parts visibly shift to make
+   room. Sits in the flex flow so the layout reflows naturally. */
+.track-part-placeholder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 8px 8px;
+  border-radius: 10px;
+  border: 2px dashed var(--c, var(--brand));
+  background: rgba(37, 99, 235, .06);
+  color: var(--ink-2);
+  font-size: .9rem;
+  font-weight: 500;
   opacity: 0;
-  transition: opacity .12s ease, left .08s ease;
+  transform: scale(.96);
+  transition: opacity .12s ease, transform .12s ease;
+  pointer-events: none;
+  user-select: none;
 }
-.track-drop-marker.is-visible { opacity: 1; }
-.track-drop-marker::before,
-.track-drop-marker::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
+.track-part-placeholder.is-visible {
+  opacity: 1;
+  transform: scale(1);
 }
-.track-drop-marker::before { top: -8px;  border-top: 8px solid var(--brand); transform: translateX(-50%) rotate(180deg); }
-.track-drop-marker::after  { bottom: -8px; border-top: 8px solid var(--brand); }
+.track-part-placeholder .tp-type {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--c);
+  font-weight: 700;
+  margin-right: 4px;
+  opacity: .8;
+}
+.track-part-placeholder .tp-bp {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  color: var(--muted);
+  margin-left: 6px;
+  font-feature-settings: 'zero' 1, 'tnum' 1, 'ss01' 1;
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+/* When reordering an existing track part, collapse the original out of the
+   layout so only the placeholder shows where the part will end up. */
+.track-part.is-source-hidden {
+  display: none;
+}
 .track[data-empty="true"] {
   align-items: center;
   justify-content: center;
@@ -675,7 +694,7 @@ code { background: var(--bg-soft); padding: 1px 6px; border-radius: 5px; }
   transform: rotate(45deg);
   margin-left: 6px;
 }
-.track-part.dragging { opacity: .5; }
+.track-part.dragging { /* original is collapsed via .is-source-hidden during a real drag */ }
 .track-part .tp-type {
   font-size: .68rem;
   text-transform: uppercase;

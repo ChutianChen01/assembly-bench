@@ -119,13 +119,14 @@
         e.dataTransfer.setData('text/library-id', part.id);
         // Replace the browser's default drag image with our own follower.
         try { e.dataTransfer.setDragImage(TRANSPARENT_PNG, 0, 0); } catch (_) {}
+        startDrag('new', part);
         follower.show(followerHTMLForPart(part), 'new');
         follower.move(e.clientX, e.clientY);
       });
       li.addEventListener('dragend', () => {
         li.classList.remove('dragging');
         follower.hide();
-        hideInsertionMarker();
+        endDrag();
       });
       attachTooltip(li, () => `<strong>${escapeHTML(part.name)}</strong><br>${escapeHTML(part.summary || '')}<br><span class="muted small">Drag onto the track or click + Add</span>`);
       list.appendChild(li);
@@ -153,13 +154,6 @@
         track.appendChild(buildTrackPart(p));
       });
     }
-    // Always keep the drop marker available — it's positioned absolutely.
-    const marker = document.createElement('span');
-    marker.id = 'dropMarker';
-    marker.className = 'track-drop-marker';
-    marker.setAttribute('aria-hidden', 'true');
-    track.appendChild(marker);
-
     updateStats();
     renderCircular();
     runValidation();
@@ -258,13 +252,14 @@
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/uid', p.uid);
       try { e.dataTransfer.setDragImage(TRANSPARENT_PNG, 0, 0); } catch (_) {}
+      startDrag('reorder', p, p.uid);
       follower.show(followerHTMLForPart(p), 'reorder');
       follower.move(e.clientX, e.clientY);
     });
     el.addEventListener('dragend', () => {
       el.classList.remove('dragging');
       follower.hide();
-      hideInsertionMarker();
+      endDrag();
     });
 
     attachTooltip(el, () => {
@@ -275,11 +270,56 @@
     return el;
   }
 
-  // Compute the visual insertion index for an x-coordinate. `excludeUid` lets us
-  // skip the currently-dragged element when reordering.
+  // Active drag state. A "placeholder" is a chip-shaped, dimmed ghost that
+  // lives inside the track's flex layout at the cursor's projected drop
+  // position. It shifts other parts to make room as the cursor moves.
+  let dragState = null;
+  // {
+  //   kind: 'new' | 'reorder',
+  //   part: { type, name, sequence },
+  //   sourceUid?: string,
+  //   placeholder: HTMLElement,
+  //   sourceEl?: HTMLElement,   // hidden while reordering
+  // }
+
+  function makePlaceholder(part) {
+    const c = meta[part.type]?.color || '#94a3b8';
+    const ph = document.createElement('div');
+    ph.className = 'track-part-placeholder';
+    ph.style.setProperty('--c', c);
+    ph.innerHTML = `
+      <span class="tp-type">${escapeHTML(meta[part.type]?.label || part.type)}</span>
+      <span class="tp-name">${escapeHTML(part.name)}</span>
+      <span class="tp-bp">${(part.sequence || '').length} bp</span>
+    `;
+    return ph;
+  }
+
+  function startDrag(kind, part, sourceUid) {
+    const placeholder = makePlaceholder(part);
+    let sourceEl = null;
+    if (kind === 'reorder' && sourceUid) {
+      sourceEl = document.querySelector(`.track-part[data-uid="${sourceUid}"]`);
+      if (sourceEl) sourceEl.classList.add('is-source-hidden');
+    }
+    dragState = { kind, part, sourceUid, placeholder, sourceEl };
+  }
+
+  function endDrag() {
+    if (!dragState) return;
+    const { placeholder, sourceEl } = dragState;
+    if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+    if (sourceEl) sourceEl.classList.remove('is-source-hidden');
+    dragState = null;
+  }
+
+  // Compute the visual insertion index for an x-coordinate, ignoring the
+  // currently-hidden source element and our own placeholder.
   function insertionIndexFor(clientX, excludeUid) {
     const track = $('#track');
-    const parts = $$('.track-part', track).filter((el) => el.dataset.uid !== excludeUid);
+    const parts = $$('.track-part', track).filter((el) =>
+      el.dataset.uid !== excludeUid && !el.classList.contains('is-source-hidden')
+    );
     for (let i = 0; i < parts.length; i++) {
       const r = parts[i].getBoundingClientRect();
       if (clientX < r.left + r.width / 2) return i;
@@ -287,31 +327,30 @@
     return parts.length;
   }
 
-  // Position the insertion marker between the right parts.
+  // Slot the chip-shaped placeholder into the track at the projected drop
+  // index so other parts visibly shift to make room.
   function showInsertionMarker(index, excludeUid) {
+    if (!dragState) return;
     const track = $('#track');
-    const marker = $('#dropMarker');
-    if (!marker) return;
-    const parts = $$('.track-part', track).filter((el) => el.dataset.uid !== excludeUid);
-    const trackRect = track.getBoundingClientRect();
+    const ph = dragState.placeholder;
+    const parts = $$('.track-part', track).filter((el) =>
+      el.dataset.uid !== excludeUid && !el.classList.contains('is-source-hidden')
+    );
 
-    let left;
-    if (parts.length === 0) {
-      left = trackRect.width / 2;
-    } else if (index >= parts.length) {
-      const r = parts[parts.length - 1].getBoundingClientRect();
-      left = r.right - trackRect.left + 6;
+    if (index >= parts.length) {
+      // Append at the end — make sure ph isn't already at the very end
+      if (track.lastElementChild !== ph) track.appendChild(ph);
     } else {
-      const r = parts[index].getBoundingClientRect();
-      left = r.left - trackRect.left - 6;
+      const target = parts[index];
+      if (ph.nextSibling !== target) track.insertBefore(ph, target);
     }
-    marker.style.left = `${Math.max(8, Math.min(trackRect.width - 8, left))}px`;
-    marker.classList.add('is-visible');
+    ph.classList.add('is-visible');
   }
 
   function hideInsertionMarker() {
-    const marker = $('#dropMarker');
-    if (marker) marker.classList.remove('is-visible');
+    if (dragState && dragState.placeholder && dragState.placeholder.parentNode) {
+      dragState.placeholder.parentNode.removeChild(dragState.placeholder);
+    }
   }
 
   function setupTrackDnD() {
@@ -748,8 +787,8 @@
       if (!follower.el || !follower.el.classList.contains('is-visible')) return;
       follower.move(e.clientX, e.clientY);
     });
-    document.addEventListener('drop',    () => { follower.hide(); hideInsertionMarker(); });
-    document.addEventListener('dragend', () => { follower.hide(); hideInsertionMarker(); });
+    document.addEventListener('drop',    () => { follower.hide(); endDrag(); });
+    document.addEventListener('dragend', () => { follower.hide(); endDrag(); });
   }
 
   // ------- Boot -------
