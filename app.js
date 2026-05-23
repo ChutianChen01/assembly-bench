@@ -106,12 +106,19 @@
       li.dataset.libraryId = part.id;
       const c = meta[part.type]?.color || '#94a3b8';
       li.innerHTML = `
-        <span class="li-swatch" style="--c:${c}"></span>
-        <span class="li-text">
-          <span class="li-name">${escapeHTML(part.name)}</span>
-          <span class="li-meta">${meta[part.type]?.label || part.type} · ${part.sequence.length} bp</span>
-        </span>
-        <button type="button" data-add="${part.id}" title="Add to assembly">+ Add</button>
+        <div class="li-row">
+          <span class="li-swatch" style="--c:${c}"></span>
+          <span class="li-text">
+            <span class="li-name">${escapeHTML(part.name)}</span>
+            <span class="li-meta">${meta[part.type]?.label || part.type} · ${part.sequence.length} bp</span>
+          </span>
+          <button type="button" class="li-info" data-info="${part.id}" aria-label="Show details" title="Show details">i</button>
+          <button type="button" data-add="${part.id}" title="Add to assembly">+ Add</button>
+        </div>
+        <div class="li-summary" hidden>
+          <p>${escapeHTML(part.summary || 'No description available.')}</p>
+          <p class="muted small">${meta[part.type]?.label || part.type} · ${part.sequence.length} bp · ID <code>${escapeHTML(part.id)}</code></p>
+        </div>
       `;
       li.addEventListener('dragstart', (e) => {
         li.classList.add('dragging');
@@ -128,7 +135,6 @@
         follower.hide();
         endDrag();
       });
-      attachTooltip(li, () => `<strong>${escapeHTML(part.name)}</strong><br>${escapeHTML(part.summary || '')}<br><span class="muted small">Drag onto the track or click + Add</span>`);
       list.appendChild(li);
     }
   }
@@ -260,11 +266,6 @@
       el.classList.remove('dragging');
       follower.hide();
       endDrag();
-    });
-
-    attachTooltip(el, () => {
-      const m = meta[p.type];
-      return `<strong>${escapeHTML(p.name)}</strong><br>${escapeHTML(m?.tip || '')}`;
     });
 
     return el;
@@ -505,7 +506,6 @@
       });
       path.style.cursor = 'pointer';
       path.addEventListener('click', () => openEditor(p.uid));
-      attachTooltip(path, () => `<strong>${escapeHTML(p.name)}</strong><br>${escapeHTML(meta[p.type]?.label || p.type)} · ${p.sequence.length} bp`);
       svg.appendChild(path);
 
       // Label
@@ -745,10 +745,21 @@
 
   // ------- Event wiring -------
   function bind() {
-    // Library add buttons (event delegation)
+    // Library add / info buttons (event delegation)
     $('#libraryList').addEventListener('click', (e) => {
-      const btn = e.target.closest('button[data-add]');
-      if (btn) addLibraryPart(btn.dataset.add);
+      const addBtn = e.target.closest('button[data-add]');
+      if (addBtn) { addLibraryPart(addBtn.dataset.add); return; }
+      const infoBtn = e.target.closest('button[data-info]');
+      if (infoBtn) {
+        const li = infoBtn.closest('.library-item');
+        const summary = li?.querySelector('.li-summary');
+        if (summary) {
+          const open = !summary.hasAttribute('hidden') ? false : true;
+          if (open) summary.removeAttribute('hidden'); else summary.setAttribute('hidden', '');
+          li.classList.toggle('is-expanded', open);
+          infoBtn.setAttribute('aria-expanded', String(open));
+        }
+      }
     });
 
     // Filter chips
